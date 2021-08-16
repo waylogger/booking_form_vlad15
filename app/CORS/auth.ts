@@ -1,4 +1,3 @@
-
 // import 'regenerator-runtime/runtime'
 import 'whatwg-fetch'
 import { SessionKey, accessTokenKey, refreshTokenKey, expiredKey } from './entities/SessionKey'
@@ -72,6 +71,8 @@ class Auth {
 	private tokenExpired(token: SessionKey): boolean {
 		return token[expiredKey] < Math.floor(Date.now() / 1000);
 	}
+
+	//---------------------------------------------------------------------------------------------
 	private async refreshToken(token: SessionKey): Promise<SessionKey> {
 		if (!token || !token[refreshTokenKey]) {
 
@@ -90,6 +91,7 @@ class Auth {
 		return newToken;
 	}
 
+	//---------------------------------------------------------------------------------------------
 	public async auth(): Promise<SessionKey> {
 		const savedToken: SessionKey | undefined = await this.getSavedSecret();
 		if (!savedToken) {
@@ -111,7 +113,7 @@ class Auth {
 			return this.token;
 		}
 	}
-
+	//---------------------------------------------------------------------------------------------
 }
 /**
  * @returns ключ доступа для включения в заголовок Authorization

@@ -1,14 +1,10 @@
 /**
 * @module template.ts
+* @description разметка формы календаря в перемешку с данными
 */
 
 import * as shared from '../shared/sharedData';
 import $ from 'jquery';
-
-
-
-
-
 
 export const rootSection = (): any => {
 	return `
@@ -124,7 +120,9 @@ export const rootSection = (): any => {
 
 </div>`
 }
-
+/**
+* @description функция отрисовка календаря вместо rootSectionId
+* */
 export function renderBookingForm(): void {
 	$(`#${shared.domElementId.rootSectionId}`).html(rootSection());
 }

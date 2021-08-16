@@ -11,14 +11,20 @@ import eachMinuteOfInterval from 'date-fns/eachMinuteOfInterval';
 import _, { find, isEqual, lowerFirst } from 'lodash'
 import { PeriodsRequest } from '../CORS/entities/apiExchange/clientTypes';
 import $ from 'jquery'
-import { DateRangePicker } from '../components/Calendar';
 import { addHours, addMinutes, isAfter, isBefore } from 'date-fns';
 import { correctionSecondTimeAfterFirst, timeSelectorBy15Min } from '../components/timeSelect';
 import isWithinInterval from 'date-fns/isWithinInterval';
-import { transliterate } from 'transliteration'
 import { isReturnStatement, isThrowStatement } from 'typescript';
 
+import { transliterate } from 'transliteration'
+import { CarsState } from './CarsState';
 
+/**
+* @description смысл функции в том, чтобы обеспечить требование заказчика о 3-х часовом периоде недоступности авто после сдачи
+* поэтому все полученные от сервера периоды свободы авто укорачиваются на 3 часа с момента возврата авто (для подготовка) и на 3 часа до момента его получения (для подготовка)
+* Еще раз, смысл в том, чтобы отсутствовала возможность забронировать авто за 3 часа до следующей брони и до 3 часов после его возврата 
+* */
+// ================================================================================================
 function trimPeriodBy3HoursOnEachSide(period: SinglePeriod): SinglePeriod {
 	let begin = new Date(period.begin);
 	let end = new Date(period.end);
@@ -33,19 +39,29 @@ function trimPeriodBy3HoursOnEachSide(period: SinglePeriod): SinglePeriod {
 	begin = addHours(begin, 3);
 	return { begin: begin, end: end };
 }
-
+// ================================================================================================
 function trimMultiplePeriodsBy3HoursOnEachSide(periods: SinglePeriod[]): SinglePeriod[] {
 	return periods.map(el => trimPeriodBy3HoursOnEachSide(el));
 }
+/**
+* @description переформатируем даты для работа на IOS
+* */
+// ================================================================================================
 function reformatPeriod(period: SinglePeriod): SinglePeriod {
 	period.begin = period.begin.toString().replace(' ', 'T');
 	period.end = period.end.toString().replace(' ', 'T');
 	return period;
 }
+
+// ================================================================================================
 function reformatDateForIOS(periods: SinglePeriod[]): SinglePeriod[] {
 	return periods.map(el => reformatPeriod(el));
 }
 
+// ================================================================================================
+/**
+* @description проверка наличия даты во многих периодах
+* */
 function isWithinIntervals(periods: SinglePeriod[], timestamps: Date[]): boolean {
 	const timeIsFound = true;
 	const timeNotFound = false;
@@ -66,6 +82,7 @@ function isWithinIntervals(periods: SinglePeriod[], timestamps: Date[]): boolean
 	return timeNotFound;
 }
 
+// ================================================================================================
 function isWithinIntervalsAndFindIt(periods: SinglePeriod[], timestamps: Date[]): SinglePeriod | undefined {
 	const timeIsFound = true;
 	const timeNotFound = undefined;
@@ -81,8 +98,6 @@ function isWithinIntervalsAndFindIt(periods: SinglePeriod[], timestamps: Date[])
 		period => isAfter(timestamps[0], new Date(period.begin)) && isBefore(timestamps[timestamps.length - 1], new Date(period.end))
 
 	);
-
-
 	for (let i = 0; i < timestamps.length; ++i) {
 		const dt = timestamps[i];
 
@@ -98,12 +113,10 @@ function isWithinIntervalsAndFindIt(periods: SinglePeriod[], timestamps: Date[])
 	}
 	return timeNotFound;
 }
-
-
+// ================================================================================================
 
 const defultCarListResponse: CarListResponse = { result_code: 0, cars: [] };
 const defaultPlacesResponse: PlacesResponse = { result_code: 0, places: [] }
-
 
 export class State {
 
@@ -111,17 +124,19 @@ export class State {
 	public setFirstSelectedId(id: string): void {
 		this.firstSelectedId = id;
 	}
-
+	// ----------------------------------------------------------------------------------------
 	private secondSelectedId: string = '';
 	public setSecondSelectedId(id: string): void {
 		this.secondSelectedId = id;
 	}
 
+	// ----------------------------------------------------------------------------------------
 
 	private selectedMonthInx: number = new Date().getMonth();
 	public setSelectedMonthInx(monthInx: number): void {
 		this.selectedMonthInx = monthInx;
 	}
+
 	public incSelectedMonthInx(): void {
 		if (this.selectedMonthInx === 11) {
 			this.selectedYear++;
@@ -148,6 +163,7 @@ export class State {
 		return ret;
 	}
 
+	// ----------------------------------------------------------------------------------------
 	private selectedYear: number = new Date().getFullYear();
 	public setSelectedYear(monthInx: number): void {
 		this.selectedYear = monthInx;
@@ -157,14 +173,7 @@ export class State {
 		const ret = this.selectedYear;
 		return ret;
 	}
-
-
-
-	private selectedCarModelName: string = '';
-	public getSelectedCarModelName(): String {
-		return new String(this.selectedCarModelName);
-	}
-
+	// ----------------------------------------------------------------------------------------
 	private ageChecker: boolean = false;
 	public toggleAgeChecker(): boolean {
 		this.ageChecker = !this.ageChecker;
@@ -177,14 +186,7 @@ export class State {
 		return this.policyChecker;
 	}
 
-
-
-	private mainCarForBid: number = 0;
-	public getMainCar(): number {
-		return this.mainCarForBid;
-	}
-
-	//-----------------------------------------------------------------------------------------
+	// ----------------------------------------------------------------------------------------
 	private firstDateOfRange: Date | undefined = undefined;
 
 	public isFirstDateOfRangeWasSelect(): boolean {
@@ -219,23 +221,16 @@ export class State {
 		$(`#${this.firstSelectedId}`).removeClass('dp-selected');
 	}
 	//-----------------------------------------------------------------------------------------
-
-	private firstTimeOfRange: Date | undefined = undefined;
-	public setFirstTimeOfRange(ftr: Date | undefined): void { this.firstTimeOfRange = ftr; }
-	public getFirstTimeOfRange(): Date | undefined { const ftr = this.firstTimeOfRange; return ftr; }
-
-	private secondTimeOfRange: Date | undefined = undefined;
-	public setSecondTimeOfRange(ftr: Date | undefined): void { this.secondTimeOfRange = ftr; }
-	public getSecondTimeOfRange(): Date | undefined {
-		const ftr = this.secondTimeOfRange; return ftr;
-	}
-
 	private secondDateOfRange: Date | undefined = undefined;
 	public isSecondDateOfRangeWasSelect(): boolean {
 		return this.secondDateOfRange ? true : false;
 	}
+
+	public setMainCar(){
+		this.carState.mainCarForBid =  this.freePeriodsForCurrentBookingCarAfterFirstSelect[0].car_id;
+	}
+
 	public setSecondDateOfRange(timestampOfSecondSelectDate: Date): void {
-		
 		this.secondDateOfRange = timestampOfSecondSelectDate;
 		const selectedTime = $(`#${shared.domElementId.selectReceiveTimeId}`).val()?.toString().split(':').map(it => parseInt(it, 10));
 		const firstDate = this.getFirstDateOfRange();
@@ -253,10 +248,9 @@ export class State {
 		correctionSecondTimeAfterFirst(this);
 		this.setMainCar();
 
+
 		$(`#${shared.domElementId.returnDataId}`).val(this.getSecondDateOfRange().toLocaleDateString());
 		$(`#${shared.domElementId.selectReceiveTimeId}`).trigger('change');
-
-
 	}
 	public dropSecondDateOfRange() {
 		if (!this.isSecondDateOfRangeWasSelect()) return;
@@ -290,42 +284,23 @@ export class State {
 		$(`#${shared.domElementId.returnDataId}`).trigger('change');
 		$(`#${shared.domElementId.carSelectId}`).trigger('change');
 	}
-
-
-	public setMainCar() {
-		this.mainCarForBid = this.freePeriodsForCurrentBookingCarAfterFirstSelect[0].car_id;
+	//-----------------------------------------------------------------------------------------
+	private firstTimeOfRange: Date | undefined = undefined;
+	public setFirstTimeOfRange(ftr: Date | undefined): void { this.firstTimeOfRange = ftr; }
+	public getFirstTimeOfRange(): Date | undefined { const ftr = this.firstTimeOfRange; return ftr; }
+	//-----------------------------------------------------------------------------------------
+	private secondTimeOfRange: Date | undefined = undefined;
+	public setSecondTimeOfRange(ftr: Date | undefined): void { this.secondTimeOfRange = ftr; }
+	public getSecondTimeOfRange(): Date | undefined {
+		const ftr = this.secondTimeOfRange; return ftr;
 	}
-	/**
-	 * @description адреса места для выдачи и возврата арендованных авто
-	*/
-	private placesForReceiveAndReturnCars: PlacesResponse = { result_code: 0, places: [] };
-	/**
-	 * @description все авто, доступные для бронирования у заказчика
-	*/
-	private allCarsForRent: CarListResponse = defultCarListResponse;
-	/**
-	 * @description все авто одной модели, которая бронируется в настоящее время
-	*/
-	private allCarsForCurrentBooking: SingleCar[] = [];
+		//-----------------------------------------------------------------------------------------
+	private placesForReceiveAndReturnCars: PlacesResponse = defaultPlacesResponse;
 
-	public carIdForBidCost(): number {
-		return this.allCarsForCurrentBooking[0].car_id;
-	}
-	/**
-	 * @description телефон арендатора
-	*/
+
 	private customersPhone: string | undefined = '';
-	/**
-	 * @description телефон имя арендатора
-	*/
 	private customersName: string | undefined = '';
-	/**
-	 * массив данных, который содержит данные о периодах брони в отношении allCarsForCurrentBooking
-	*/
 	private busyPeriodsForCurrentBookingCar: SingleCarWithPeriods[] = [];
-	/**
-	 * @description массив данных, который содержит исходные значения периодов для текущих машин
-	*/
 	private freePeriodsForCurrentBookingCar: SingleCarWithPeriods[] = [];
 	private freePeriodsForCurrentBookingCarAfterFirstSelect: SingleCarWithPeriods[] = [];
 	public filterCurrentCarForBookingBySelection(timestamp: Date): void {
@@ -337,32 +312,19 @@ export class State {
 		);
 
 	}
-	/**
-	 * @description массив данных, который содержит исходные значения периодов для всех машин
-	*/
 	private freePeriodsForAllBookingCar: SingleCarWithPeriods[] = [];
-	/**
-	 * Массив дней, которые полностью недоступны для брони всех allCarsForCurrentBooking
-	*/
 	private fulldaysNotAvaivableForBooking: Date[] = [];
-	/**
-	 * Массив дней, которые частично недоступны для брони всех allCarsForCurrentBooking - ключи, значения - это массив недоступных отрезков по 15 мину
-	*/
 	private partedDayNotAvaiableForBooking: Date[][] = [];
-
-	/**
-	 * @description сервер принимет дату в виде "2021-11-01 10:00Z", поэтому timestamp требуется постоянно переводить в этот формат, для чего служит эта функция
-	*/
 	private reformatDate(dt: Date): string {
 		return `${dt.toLocaleDateString().split('.').reverse().join('-')} ${dt.toLocaleTimeString()}Z`;
 	}
 
-	private async fetchFreePeriodsForAllCars(): Promise<void> {
+	public async fetchFreePeriodsForAllCars(): Promise<void> {
 
 
 		const carsIdOfAllCars: number[] = [];
 		const promisesForFetctFreePeriodsDate: Promise<FreePeriodResponse>[] = [];
-		this.allCarsForRent.cars.forEach((car) => { carsIdOfAllCars.push(car.car_id) });
+		this.carState.allCarsForRent.cars.forEach((car) => { carsIdOfAllCars.push(car.car_id) });
 
 		const beginDateForAllCars = currentYearForServer();
 		const endDateForAllCars = nextYearForServer();
@@ -386,18 +348,16 @@ export class State {
 		resultOfFetchFreePeriods.forEach(
 			(res, inx) => {
 				res.car_periods = reformatDateForIOS(res.car_periods);
-
-				this.freePeriodsForAllBookingCar.push({ ...this.allCarsForRent.cars[inx], car_periods: trimMultiplePeriodsBy3HoursOnEachSide(res.car_periods) })
+				this.freePeriodsForAllBookingCar.push({ ...this.carState.allCarsForRent.cars[inx], car_periods: trimMultiplePeriodsBy3HoursOnEachSide(res.car_periods) })
 			}
 		);
+
 
 		this.freePeriodsForCurrentBookingCar = this.freePeriodsForAllBookingCar.filter(
 			(carPeriodItem: SingleCarWithPeriods) => {
 
-				return this.allCarsForCurrentBooking.find((item: SingleCar, inx: number) => {
-
-					return item.car_id === carPeriodItem.car_id ? true : false;
-				})
+				return this.carState.allCarsForCurrentBooking.find((item: SingleCar, inx: number) => { 	return item.car_id === carPeriodItem.car_id ? true : false;})
+				return true;
 			}
 		);
 
@@ -405,18 +365,24 @@ export class State {
 
 
 	}
+	// ----------------------------------------------------------------------------------------
+
+	private _carState: CarsState =  new CarsState();
+	public get carState(): CarsState {
+		return this._carState;	
+	}
+
+	public set carState(cs: CarsState ) {
+		this._carState = cs;	
+	}
 
 
 	constructor() { }
-
-	/**
-	 * @description инициализация данных через асинхронные запросы
-	*/
+	// ----------------------------------------------------------------------------------------
 	public async init(): Promise<State> {
 		const promises: Promise<any>[] = []
 		// --------------------------------------------------
 		promises.push(getPlaceList());
-		promises.push(getCarList());
 
 		const res = await Promise.all(promises);
 		// список мест
@@ -427,84 +393,41 @@ export class State {
 			(place) => !place.archive
 		)
 		this.placesForReceiveAndReturnCars = places;
-		//список машин
-		// --------------------------------------------------
-		this.allCarsForRent = res[1]
+
+		this.carState = await this.carState.init();
 
 		return this;
 	}
 
+	// ----------------------------------------------------------------------------------------
 
 	public getPlacesForReceiveAndReturnCars(): PlacesResponse {
 		const places = this.placesForReceiveAndReturnCars;
 		return { result_code: places.result_code, places: places.places };
 	}
 
+	// ----------------------------------------------------------------------------------------
 	public saveCustomersPhone(num: string | undefined): void {
 		this.customersPhone = num;
 	}
 
+	// ----------------------------------------------------------------------------------------
 	public getCustomersPhone(): String | undefined {
 		return new String(this.customersPhone).toString();
 	}
 
+	// ----------------------------------------------------------------------------------------
 	public saveCustomersName(name: string | undefined): void {
 		this.customersName = name;
 
 	}
 
+	// ----------------------------------------------------------------------------------------
 	public getCustomersName(): String | undefined {
 		return new String(this.customersName).toString();
 
 	}
-
-	public getAllCarsForRent(): CarListResponse {
-		const res = this.allCarsForRent;
-		res.cars.map(
-			(
-				car
-			) => {
-				// car.model = car.model.
-				// console.log(transliterate(car.model));
-				car.model = transliterate(car.model);
-
-
-
-			}
-		)
-		return { result_code: res.result_code, cars: res.cars };
-
-	}
-
-	public async selectCar(nameOfCarFromCarSelectOrHash: string | undefined): Promise<void> {
-
-		if (!nameOfCarFromCarSelectOrHash)
-			return;
-		//localdata			
-		const carModelNamesForCompare: string[] = [];
-		//step0 преобразуем имена для сравнения
-		this.getAllCarsForRent().cars.forEach(
-			(car) => {
-				// console.log(formatCarModelFromSelectToHash(formatCarModelFromBaseToSelect(car.model)));
-				carModelNamesForCompare.push(formatCarModelFromBaseToSelect(car.model))
-			}
-		);
-
-		//step1 фильтруем массив по совпадению с select
-		this.allCarsForCurrentBooking = this.allCarsForRent.cars.filter(
-			(_, inx) => {
-				return carModelNamesForCompare[inx] === nameOfCarFromCarSelectOrHash
-			}
-		);
-
-		this.selectedCarModelName = nameOfCarFromCarSelectOrHash;
-		await this.fetchFreePeriodsForAllCars();
-
-
-
-
-	}
-
+	// ----------------------------------------------------------------------------------------
 	private findFirstPeriodWhichConsistTimestamt(periods: SinglePeriod[], timestamp: Date): boolean {
 		const findedPeriod: SinglePeriod | undefined = periods.find(
 			(item) => {
@@ -515,6 +438,7 @@ export class State {
 		return findedPeriod ? true : false;
 	}
 
+	// ----------------------------------------------------------------------------------------
 	public isDateBusy(dt: Date): Boolean {
 		// console.log('busy');
 
@@ -523,8 +447,14 @@ export class State {
 		const dateIsBusy = true;
 		const dateIsFree = false;
 		const numberTimeSlotsInFourHours = 1 * 4; //one
+		const today: Date = new Date();
+		today.setHours(0);
+		today.setMinutes(0);
+		today.setSeconds(-1); //сделано для того, чтобы сегодняшний день оставался доступным (сравнение идет по 00:00:00)
+		if (isBefore(dt, today)) {
+//			console.table({dt, today});
+			return dateIsBusy }
 
-		if (isBefore(dt, new Date())) return dateIsBusy;
 
 		if (this.isSecondDateOfRangeWasSelect()) {
 			const secondDate: Date | undefined = this.getSecondDateOfRange();
@@ -616,6 +546,7 @@ export class State {
 	}
 
 
+	// ----------------------------------------------------------------------------------------
 	public getFreeTimeSlotsForReceiveAndReturnCar(dt: Date): Date[] {
 
 
@@ -690,7 +621,5 @@ export class State {
 		}
 		return [];
 	}
-
-
 }
 export const BookingState = () => (new State()).init();

@@ -1,7 +1,3 @@
-
-
-
-
 export const domElementId = {
 	rootSectionId: 'rootSection',
 	bookModuleId: 'bookModuleId',
@@ -58,11 +54,5 @@ export const domElementId = {
 	dpDaysGridId: 'dp-days-gridId',
 	dpNextMonth: "dp-next-month",
 	dpPrevMonth: "dp-prev-month",
-
-
-
-
 }
-
-
 export const badDateEqualNull = new Date(0, 0, 0, 0, 0);

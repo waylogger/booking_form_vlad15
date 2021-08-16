@@ -68,6 +68,9 @@ export function translateDate(d1: Date, d2: Date, t1: string | undefined, t2: st
  * @description получаем текущий date в формате для сервера: yyyy-mm-dd hh:mm:ssZ
 */
 
+/**
+* @example 20.02.2021 10:25 -> 2021-02-20 10:25Z
+* */
 export function dateForServer(customDate: Date = new Date()): string {
 	return `${customDate.toLocaleDateString().split('.').reverse().join('-')} ${customDate.toLocaleTimeString()}Z`;
 }
@@ -98,19 +101,15 @@ export function nextYearForServer() {
 	dt.setMilliseconds(0);
 	return dateForServer(dt);
 }
-
 export function splitDateByMinutes(dt: Date, minutes: number): Date[] {
-
 	return eachMinuteOfInterval({ start: dt, end: new Date(dt.getFullYear(), dt.getMonth(), dt.getDate() + 1) }, { step: minutes });
 }
-
 export function validateField(domId: string, domIdOfIndicator: string): boolean {
 	const domElement = $(`#${domIdOfIndicator}`);
 
 	const target: string | undefined | number | string[] = $(`#${domId}`).val();
 
 	if (!target) {
-
 		domElement.addClass(domElementId.incorrectFieldClass);
 		domElement.removeClass(domElementId.correctFieldClass);
 		return false;
@@ -120,7 +119,9 @@ export function validateField(domId: string, domIdOfIndicator: string): boolean 
 	return true;
 
 }
-
+/**
+* @description валидируем checkboxs
+* */
 export function validateChecker(domId: string, domIdOfIndicator: string): boolean {
 	const domElement = $(`#${domIdOfIndicator}`);
 	const val: boolean | undefined =  $(`#${domId}`).is(':checked');

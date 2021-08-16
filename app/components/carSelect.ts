@@ -8,6 +8,7 @@ import { option, clearColor, formatCarModelFromBaseToSelect, formatCarModelFromS
 import * as shared from '../shared/sharedData';
 import _ from 'lodash';
 import { CalendarInjector } from './Calendar/CalendarInjector';
+import {SingleCar} from '../CORS/entities/apiExchange/serverTypes';
 
 
 
@@ -21,7 +22,7 @@ export const carSelect = async (state: State): Promise<void> => {
 	let modelName = addr.replace(/.*\//g, '');
 	
 	let resStr = '';
-	const cars = state.getAllCarsForRent().cars;
+	const cars = state.carState.allCarsForRent.cars;
 
 	const modelArr: string[] = [];
 
@@ -70,7 +71,8 @@ export const carSelect = async (state: State): Promise<void> => {
 		if (state.isSecondDateOfRangeWasSelect())
 			state.dropSecondDateOfRange();
 
-		await state.selectCar(stringValueFromSelect);
+		await state.carState.selectCar(stringValueFromSelect);
+		await state.fetchFreePeriodsForAllCars();
 		await CalendarInjector(state);
 		
 	})

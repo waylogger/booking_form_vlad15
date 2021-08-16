@@ -1,4 +1,5 @@
 import { bundleBookingForm } from './app/bundle';
+import { CarsState} from './app/state/CarsState'
 
 
 (

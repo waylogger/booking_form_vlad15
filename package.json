@@ -7,7 +7,7 @@
     "start": "tsc && parcel index.html",
     "dev": "NODE_ENV=development npx tsc-watch --onSuccess \"webpack\"",
     "parcel": "NODE_ENV=development npx parcel index.html",
-    "doc": "npx typedoc app/bundle.ts && firefox docs/index.html",
+    "doc": "npx typedoc app/state/CarsState.ts && firefox docs/index.html",
     "docs": "npx typedoc app/* && firefox docs/index.html",
     "build": "tsc && npx parcel build index.html"
   },

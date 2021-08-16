@@ -1,8 +1,6 @@
 /**
- * @module bitText.ts
+ * @module bidPreview.ts
 */
-
-
 import $ from 'jquery';
 import { State } from '../state/state';
 import * as shared from '../shared/sharedData';
@@ -10,10 +8,10 @@ import { translateDate } from '../shared/sharedActions';
 import { BidCostRequest } from '../CORS/entities/apiExchange/clientTypes';
 import { BidCostResponse, PlacesResponse, SingleCar, SinglePlace } from '../CORS/entities/apiExchange/serverTypes';
 import { getCost } from '../CORS/querySender';
-
+// ================================================================================================
 export async function bidPreview(state: State): Promise<void> {
 	
-	let carModel: String = state.getSelectedCarModelName();
+	let carModel: String = state.carState.selectedCarModelName;
 	carModel = carModel.replace('Mkpp','МКПП');
 	carModel = carModel.replace('Akpp','АКПП');
 	
@@ -46,6 +44,7 @@ export async function bidPreview(state: State): Promise<void> {
 		}
 	}
 	if (leftDate && leftTime && rightTime && rightDate) {
+		//20.02.2021 10:00 -> 2021-02-20T10:00Z
 		let d1: string = `${leftDate.split('.').reverse().join('-')}T${leftTime}Z`;
 		let d2: string = `${rightDate.split('.').reverse().join('-')}T${rightTime}Z`;
 
@@ -54,7 +53,7 @@ export async function bidPreview(state: State): Promise<void> {
 		$(`#${shared.domElementId.periodRentId}`).html(rentTime);
 
 		const bidRequest: BidCostRequest = {
-			car_id: state.carIdForBidCost(),
+			car_id: state.carState.carIdForBidCost(),
 			begin: d1,
 			end: d2,
 			begin_place_id: placeBegin.place_id,
@@ -67,7 +66,7 @@ export async function bidPreview(state: State): Promise<void> {
 				
 				const cost: number = bidCost.cost;
 				let deposit: number = bidCost.deposit;
-				if (deposit === null) deposit = 10000;
+				if (deposit === null) deposit = 10000; // 10000 залог по умолчанию
 				let bidCostStr = `, cтоимость аренды ${cost - deliveryCost} ₽ + залог ${deposit} ₽ (возвращаем полностью по окончанию аренды)`;
 				let resCostStr = `Итого: ${cost + deposit} ₽</span>`;
 				$(`#${shared.domElementId.bidCostId}`).html(bidCostStr);
@@ -84,9 +83,8 @@ export async function bidPreview(state: State): Promise<void> {
 		$(`#${shared.domElementId.costResolutionId}`).html(resCostStr);
 	}
 }
-
+// ================================================================================================
 export function onPreview(state: State): void {
-	
 	const onChangeList: string[] = [
 		`${shared.domElementId.carSelectId}`,
 		`${shared.domElementId.selectReceiveTimeId}`,
@@ -109,7 +107,6 @@ export function onPreview(state: State): void {
 			bidPreview(state);
 		});
 	});
-
 	bidPreview(state);
 }
 

@@ -1,5 +1,6 @@
 /**
 * @module bundle.ts
+* @description модуль отрисовка формы, её валидации и инициализации состояния
 * */
 
 import { renderBookingForm } from "./views/template";
@@ -129,11 +130,9 @@ export function bindingDOMEventsAndHandlers(state: State): void {
 */
 // -------------------------------------------------------------------------------------------------
 export async function bundleBookingForm(): Promise<void> {
-
 	renderBookingForm();
 	const state = await BookingState();
 	await carSelect(state);
-
 	$.when($.ready).then(
 		async () => {
 			customersPhoneValidateAndSave(state);
